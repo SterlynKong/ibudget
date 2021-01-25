@@ -1,4 +1,4 @@
-// create variable to hold db connection
+// create global variable to hold db connection
 let db;
 // establish a connection to IndexedDB database called 'ibudget' and set it to version 1
 const request = indexedDB.open('ibudget', 1);
@@ -7,40 +7,83 @@ const request = indexedDB.open('ibudget', 1);
 request.onupgradeneeded = ({ target }) => {
     // save a reference to the database 
     const db = target.result;
-    // create an object store (table) called `new_item`, set it to have an auto incrementing primary key of sorts 
-    db.createObjectStore('new_item', { autoIncrement: true });
+    // create an object store (table) called `new_items`, set it to have an auto incrementing primary key of sorts 
+    db.createObjectStore('offline_items', { autoIncrement: true });
 };
 
-// upon a successful 
 request.onsuccess = ({ target }) => {
     // when db is successfully created with its object store (from onupgradedneeded event above) or simply established a connection, save reference to db in global variable
     db = target.result;
 
-    // check if app is online, if yes run uploadItem() function to send all local db data to api
+    // IF the app is online then attempt to sync with serve DB
     if (navigator.onLine) {
-        checkDbOnline();
+        syncWithDB();
     }
 };
 
 request.onerror = ({ target }) => {
-    // log error here
-    console.log(target.errorCode);
+    // log error in console
+    console.log("Error: " + target.errorCode);
 };
 
 
 // This function will be executed if we attempt to submit a new item and there's no internet connection
 function saveRecord(record) {
-    // open a new transaction with the database with read and write permissions 
-    const transaction = db.transaction(['offline_item'], 'readwrite');
+    // open a new transaction with indexDB with read and write permissions 
+    const transaction = db.transaction(['offline_items'], 'readwrite');
 
     // access the object store for `new_item`
-    const itemObjectStore = transaction.objectStore('offline_item');
+    const offlineItemStore = transaction.objectStore('offline_items');
 
     // add record to your store with add method
-    itemObjectStore.add(record);
+    offlineItemStore.add(record);
 }
 
-// This function will be executed if we attempt to submit a new item and there's no internet connection
-function checkDb() {
-    
+// This function will be executed if the app is online to sync indexDB data with Server DB
+function syncWithDB() {
+    // open a transacion to indexDB
+    const transaction = db.transaction(['offline_items'], 'readwrite');
+
+    // access the object store
+    const offlineItemStore = transaction.objectStore('offline_items');
+
+    // declare variable and store all offline_items retreived from the object store
+    const getAllItems = offlineItemStore.getAll();
+
+    getAll.onsuccess = function () {
+        // if there are offline items in indexedDb's store, send it to the api for processing by the server
+        if (getAll.result.length > 0) {
+            fetch('/api/transaction/bulk', {
+                method: 'POST',
+                body: JSON.stringify(getAll.result),
+                headers: {
+                    Accept: 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json'
+                }
+            })
+                // parse server response as JSON
+                .then(response => response.json())
+                // process the server response and show error if one exists
+                .then(serverResponse => {
+                    if (serverResponse.message) {
+                        throw new Error(serverResponse);
+                    }
+                    // Cleanup of indexDB
+                    // open a new transaction to indexDB
+                    const transaction = db.transaction(['offline_items'], 'readwrite');
+                    // access the object store
+                    const offlineItemStore = transaction.objectStore('offline_items');
+                    // clear all items in your store
+                    offlineItemStore.clear();
+
+                    alert('Data successfully synced with server!');
+                })
+                .catch(err => {
+                    console.log(err);
+                });
+        }
+    };
 }
+
+// listen for app coming back online
+window.addEventListener('online', syncWithDB);
