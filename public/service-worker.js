@@ -59,27 +59,44 @@ self.addEventListener('activate', function (e) {
     );
 });
 
-// intercept and respond with local resources if they exist in the cache
-self.addEventListener("fetch", function(e) {
-    // store all get requests made to the server at /api in DATA_CACHE_NAME
+// intercept and cache successful responses to api calls
+self.addEventListener("fetch", function (e) {
+    // store all successful get requests made to the server at /api in DATA_CACHE_NAME
     if (e.request.url.includes("/api/")) {
         e.respondWith(
             caches.open(DATA_CACHE_NAME).then(cache => {
                 return fetch(e.request)
-                .then(response => {
-                    // if the fetch was successful, store a copy and forward to client
-                    if (response.status === 200) {
-                        cache.put(e.request.url, response.clone());
-                    }
+                    .then(response => {
+                        // if the fetch was successful, store a copy and forward to client
+                        if (response.status === 200) {
+                            cache.put(e.request.url, response.clone());
+                        }
 
-                    return response;
-                })
-                .catch(err => {
-                    // since there was an issue getting request from server, attempt to provide from cache
-                    return cache.match(e.request);
-                });
+                        return response;
+                    })
+                    .catch(err => {
+                        // since there was an issue getting request from server, attempt to provide from cache
+                        return cache.match(e.request);
+                    });
             })
-            .catch(err => console.log(err))
+                .catch(err => console.log(err))
         );
+        // don't run below code if code above was called - DUH. I need to remeber this.
+        return;
     }
+
+    // intercept and cache successful responses for static files from server
+    e.respondWith(
+        // request the requested static file from the server
+        fetch(e.request).catch(function () {
+            // if the response was succesfull store the file in the cache and forward it to client ELSE forward file from cache
+            return caches.match(e.request).then(function (response) {
+                if (response) {
+                    return response;
+                } else if (e.request.headers.get("accept").includes("text/HTML")) {
+                    return caches.match("/")
+                }
+            })
+        })
+    )
 })
