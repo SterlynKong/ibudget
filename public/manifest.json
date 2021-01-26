@@ -40,6 +40,6 @@
     ],
     "background_color": "#01579b",
     "theme_color": "#ffffff",
-    "start_url": "https://ibudg3t.herokuapp.com/",
+    "start_url": "ibudg3t.herokuapp.com/",
     "display": "standalone"
 }
