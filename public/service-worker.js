@@ -1,4 +1,4 @@
-const APP_PREFIX = 'ibudget-';
+const APP_PREFIX = 'iBudget-';
 const VERSION = 'version_01';
 const CACHE_NAME = APP_PREFIX + VERSION;
 const DATA_CACHE_NAME = "data-cache-" + VERSION;
@@ -15,7 +15,7 @@ const FILES_TO_CACHE = [
     "./icons/icon-152x152.png",
     "./icons/icon-192x192.png",
     "./icons/icon-384x384.png",
-    "./icons/icon-512x512.png"
+    "./icons/icon-512x512.png",
 ];
 
 
@@ -81,7 +81,7 @@ self.addEventListener("fetch", function (e) {
             })
                 .catch(err => console.log(err))
         );
-        // don't run below code if code above was called - DUH. I need to remeber this.
+        // don't run below code if code above was called - DUH. I need to remember this.
         return;
     }
 
@@ -94,7 +94,7 @@ self.addEventListener("fetch", function (e) {
                 if (response) {
                     return response;
                 } else if (e.request.headers.get("accept").includes("text/HTML")) {
-                    return caches.match("/")
+                    return cache.match("/");
                 }
             })
         })

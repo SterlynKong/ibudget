@@ -24,9 +24,9 @@ request.onsuccess = ({ target }) => {
     // when db is successfully created with its object store (from onupgradedneeded event above) or simply established a connection, save reference to db in global variable
     db = target.result;
 
-    // IF the app is online then attempt to sync with server DB
+    // IF the app is online then attempt to sync with server
     if (navigator.onLine) {
-        syncWithDB();
+        syncWithServer();
     }
 };
 
@@ -48,8 +48,8 @@ function saveRecord(record) {
     offlineItemStore.add(record);
 }
 
-// This function will be executed if the app is online to sync indexedDB data with Server DB
-function syncWithDB() {
+// This function will be executed if the app is online to sync indexedDB data with Server
+function syncWithServer() {
     // open a transacion to indexedDB
     const transaction = db.transaction(['offline_items'], 'readwrite');
 
@@ -59,12 +59,12 @@ function syncWithDB() {
     // declare variable and store all offline_items retreived from the object store
     const getAllItems = offlineItemStore.getAll();
 
-    getAll.onsuccess = function () {
+    getAllItems.onsuccess = function () {
         // if there are offline items in indexedDB's store, send it to the api for processing by the server
-        if (getAll.result.length > 0) {
+        if (getAllItems.result.length > 0) {
             fetch('/api/transaction/bulk', {
                 method: 'POST',
-                body: JSON.stringify(getAll.result),
+                body: JSON.stringify(getAllItems.result),
                 headers: {
                     Accept: 'application/json, text/plain, */*',
                     'Content-Type': 'application/json'
@@ -95,4 +95,4 @@ function syncWithDB() {
 }
 
 // listen for server becoming accessible / app going online
-window.addEventListener('online', syncWithDB);
+window.addEventListener('online', syncWithServer);
